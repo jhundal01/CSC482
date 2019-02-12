@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	loggly "github.com/jamespearly/loggly"
+	"github.com/jasonlvhit/gocron"
 )
 
 //Data structure
@@ -62,43 +63,44 @@ type List struct {
 }
 
 func main() {
+	c := gocron.NewScheduler()
+	c.Every(1).Hours().Do(weatherForecast)
+	c.Every(1).Hours().Do(weatherCurrent)
+	<-c.Start()
 	// os.Setenv("LOGGLY_TOKEN", "764e6b8e-5e82-41aa-abf6-0ce73b733b73")
 	//for terminal : LOGGLY_TOKEN=764e6b8e-5e82-41aa-abf6-0ce73b733b73 go run main.go
-	fmt.Println("Weather forecast by id")
-	m := weatherForecast()
-	fmt.Println("Weather by zipcode")
-	n := weatherCurrent()
-	var tag string
-	// var message string
-	// message = "morning"
-	tag = "Weather"
-	client := loggly.New(tag)
-	client.EchoSend("info", m)
-	client.EchoSend("info", n)
 }
 
-func weatherForecast() string {
+func weatherForecast() {
+	var tag string
+	tag = "weatherForecast"
+	client := loggly.New(tag)
+	fmt.Println("Weather forecast by id")
 	resp, err := http.Get("http://api.openweathermap.org/data/2.5/forecast?id=4070245&APPID=32d9771dc19c9e1910a8b88187d95573")
 	if err != nil {
-		return err.Error()
+		client.EchoSend("info", err.Error())
 	} else {
 		data, _ := ioutil.ReadAll(resp.Body)
 		s := Data{}
 		err := json.Unmarshal(data, &s)
 		fmt.Println(s, err)
-		return "Successful"
+		client.EchoSend("info", "success")
 	}
 }
 
-func weatherCurrent() string {
+func weatherCurrent() {
+	var tag string
+	tag = "weatherCurrent"
+	client := loggly.New(tag)
+	fmt.Println("Weather by zipcode")
 	resp, err := http.Get("http://api.openweathermap.org/data/2.5/weather?q=13126,US&APPID=32d9771dc19c9e1910a8b88187d95573")
 	if err != nil {
-		return err.Error()
+		client.EchoSend("info", err.Error())
 	} else {
 		data, _ := ioutil.ReadAll(resp.Body)
 		s := LocationData{}
 		err := json.Unmarshal(data, &s)
 		fmt.Println(s, err)
-		return "Successful"
+		client.EchoSend("info", "success")
 	}
 }
